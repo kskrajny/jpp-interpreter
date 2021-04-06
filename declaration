@@ -1,0 +1,12 @@
+Num n = 0 | 1 | -1 | 2 | -2 | ...
+Bool b = true | false
+Str s = "<ciąg liter i cyfr>"
+Var x = <ciąg liter i cyfr>
+Ref r = &x
+Arg a = x, a | r, a | <pusty>
+Expr e =
+    n | b | s | x |
+    e1 + e2 | e1 * e2 | e1 - e2 | e1 / e2 |
+    b1 < b2 | e1 == e2 | e1 and e2 | e1 or e2 | !e
+Stmt S = x := e | S1 ; S2 | if e then S | if e then S1 else S2 |
+    while e do S | func x (a) S | x(a) | x1 = x2(a)
