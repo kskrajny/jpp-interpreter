@@ -1,12 +1,20 @@
 Num n = 0 | 1 | -1 | 2 | -2 | ...
-Bool b = true | false
+
+Bool b = True | False
+
 Str s = "<ciąg liter i cyfr>"
+
 Var x = <ciąg liter i cyfr>
-Ref r = &x
+
+Ref r = Ref x
+
 Arg a = x, a | r, a | <pusty>
-Expr e =
-    n | b | s | x |
-    e1 + e2 | e1 * e2 | e1 - e2 | e1 / e2 |
-    b1 < b2 | e1 == e2 | e1 and e2 | e1 or e2 | !e
-Stmt S = x := e | S1 ; S2 | if e then S | if e then S1 else S2 |
-    while e do S | func x (a) S | x(a) | x1 = x2(a)
+
+Exp e = n | x | Add e1 e2 | Mul e1 e2 | Sub e1 e2 | Div e1 e2
+
+BExp b = Equal e1 e2 | Less b1 b2 | And e1 e2 | Or e1 e2 | Not e
+
+Decl d = DeclVar x | DeclFunc x a S | DeclSeq d1 d2
+
+Stmt S = x := e | SeqStmt S1 S2 | IfStmt e S | IfElseStmt e S1 S2 |
+    WhileStmt b S | x(a) | x1 = x2(a) | skip | BlockStmt d S
