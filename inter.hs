@@ -57,7 +57,7 @@ newtype Ref = Ref Var             -- referance
 
 data Decl
   = DeclVar Var Decl               -- variable declaration
-  | DeclFunc Var Var Stmt Decl     -- function declaration
+  | DeclFunc Var Var Var Stmt Decl     -- function declaration
   | EmptyDecl
 
 data Stmt
@@ -68,7 +68,7 @@ data Stmt
   | WhileStmt Exp Stmt         -- while
   | SkipStmt                    -- skip
   | BlockStmt Decl Stmt         -- block statement
-  | Func Var Exp Var            -- function 
+  | Func Var Exp                -- function 
 
 newloc :: Store -> Loc
 newloc s = if Data.Map.null s
@@ -96,12 +96,13 @@ semD (DeclVar x d) v f s =
     vd = Data.Map.insert x l v
     sd = Data.Map.insert l (Int 0) s
     l = newloc s
-semD (DeclFunc x a s1 d) v f s = semD d v fd s where
+semD (DeclFunc x in_arg out_arg s1 d) v f s = semD d v fd s where
   fd = Data.Map.insert x func f
-  l = newloc s
-  func arg s = semS s1 vf fd sf where
-    vf = Data.Map.insert x l v
-    sf = Data.Map.insert l arg s
+  l1 = newloc s
+  func a s = semS s1 vf fd sf where
+    vf = Data.Map.insert "return" (v ! out_arg) (Data.Map.insert in_arg l1 v)
+    sf = Data.Map.insert (v ! out_arg) undefined (Data.Map.insert l1 a s)
+
 
 semS :: Stmt -> VEnv -> FEnv -> Store -> Store
 semS SkipStmt v f s = s
@@ -118,6 +119,7 @@ semS (WhileStmt e s1) v f s =
 semS (BlockStmt d s1) v f s =
         semS s1 vd fd sd where
           (vd, fd, sd) = semD d v f s
+semS (Func func x) v f s = (f ! func) (semE x v s) s
 
 powerStmt :: Int -> Int -> Stmt
 powerStmt a b =
@@ -160,10 +162,22 @@ personStmt a b =
                 (Or (Equal (C (String a)) (V "b")) (Equal (C (String b)) (V "b")))
                 ("out" := Add (V "out") (V "w")))))))
 
+funcStmt :: Int -> Stmt
+funcStmt x =
+  BlockStmt
+    (DeclVar "y"
+      (DeclFunc "f" "x" "y"
+      (SeqStmt
+        ("return" := V "x")
+        (WhileStmt
+          (Less (V "return") (C (Int 100)))
+          ("return" := Mul (V "return") (V "x"))))
+          EmptyDecl))
+    (Func "f" (C (Int x)))
 
 power :: Int -> Int -> Val
 person :: String -> String -> Val
-
+func :: Int -> Val
 
 power a b = x where
   store = semS (powerStmt a b) Data.Map.empty Data.Map.empty Data.Map.empty
@@ -172,3 +186,7 @@ power a b = x where
 person a b = x where
   store = semS (personStmt a b) Data.Map.empty Data.Map.empty Data.Map.empty
   x = store ! 4
+
+func a = x where
+  store = semS (funcStmt a) Data.Map.empty Data.Map.empty Data.Map.empty
+  x = store ! 0
