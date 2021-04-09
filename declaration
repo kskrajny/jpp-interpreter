@@ -12,9 +12,9 @@ Arg a = x, a | r, a | <pusty>
 
 Exp e = n | x | Add e1 e2 | Mul e1 e2 | Sub e1 e2 | Div e1 e2
 
-BExp b = Equal e1 e2 | Less b1 b2 | And e1 e2 | Or e1 e2 | Not e
+BExp b = Equal e1 e2 | Less e1 e2 | And e1 e2 | Or e1 e2 | Not e
 
-Decl d = DeclVar x | DeclFunc x a S | DeclSeq d1 d2
+Decl d = DeclVar x d | DeclFunc x a S d | EmptyDecl
 
 Stmt S = x := e | SeqStmt S1 S2 | IfStmt e S | IfElseStmt e S1 S2 |
-    WhileStmt b S | x(a) | x1 = x2(a) | skip | BlockStmt d S
+    WhileStmt b S | x := Func x e | skip | BlockStmt d S
