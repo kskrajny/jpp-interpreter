@@ -1,7 +1,9 @@
-{-# LANGUAGE DataKinds #-}
+module Inter where
 import Data.Function ()
 import Data.List ()
 import Data.Map ( (!), findMax, insert, null, singleton, Map, fromList, empty )
+
+-- LANGUAGE --
 
 type Var = String
 type Loc = Int
@@ -17,6 +19,35 @@ data Val
   | Int Int
   | Bool Bool
   deriving (Show, Eq, Ord)
+
+data Exp
+  = V Var
+  | C Val
+  | Add Exp Exp     -- addition                                                     
+  | Sub Exp Exp     -- subtraction                                                  
+  | Mul Exp Exp     -- multiplication                                               
+  | Div Exp Exp     -- division
+  | Equal Exp Exp       -- equal
+  | Less Exp Exp        -- less
+  | Or Exp Exp        -- or
+  | And Exp Exp       -- and
+  | Not Exp            -- not
+
+data Decl
+  = DeclVar Var Decl               -- variable declaration
+  | DeclFunc Var Var Var Stmt Decl     -- function declaration
+  | EmptyDecl
+
+data Stmt
+  = Var := Exp                  -- assignment                                                
+  | SeqStmt Stmt Stmt           -- sequence
+  | IfStmt Exp Stmt            -- if
+  | IfElseStmt Exp Stmt Stmt   -- if else
+  | WhileStmt Exp Stmt         -- while
+  | SkipStmt                    -- skip
+  | BlockStmt Decl Stmt         -- block statement
+  | Func Var Exp                -- function 
+
 
 andVal :: Val -> Val -> Val
 andVal (Bool a) (Bool b) = Bool (a && b)
@@ -40,36 +71,6 @@ castBool :: Val -> Bool
 castBool (Bool a) = a
 castBool a = undefined
 
-data Exp
-  = V Var
-  | C Val
-  | Add Exp Exp     -- addition                                                     
-  | Sub Exp Exp     -- subtraction                                                  
-  | Mul Exp Exp     -- multiplication                                               
-  | Div Exp Exp     -- division
-  | Equal Exp Exp       -- equal
-  | Less Exp Exp        -- less
-  | Or Exp Exp        -- or
-  | And Exp Exp       -- and
-  | Not Exp            -- not
-
-newtype Ref = Ref Var             -- referance 
-
-data Decl
-  = DeclVar Var Decl               -- variable declaration
-  | DeclFunc Var Var Var Stmt Decl     -- function declaration
-  | EmptyDecl
-
-data Stmt
-  = Var := Exp                  -- assignment                                                
-  | SeqStmt Stmt Stmt           -- sequence
-  | IfStmt Exp Stmt            -- if
-  | IfElseStmt Exp Stmt Stmt   -- if else
-  | WhileStmt Exp Stmt         -- while
-  | SkipStmt                    -- skip
-  | BlockStmt Decl Stmt         -- block statement
-  | Func Var Exp                -- function 
-
 newloc :: Store -> Loc
 newloc s = if Data.Map.null s
            then 0
@@ -84,8 +85,8 @@ semE (Mul e1 e2) v s = mulVal (semE e1 v s) (semE e2 v s)
 semE (Div e1 e2) v s = divVal (semE e1 v s) (semE e2 v s)
 semE (Equal e1 e2) v s = Bool (semE e1 v s == semE e2 v s)
 semE (Less e1 e2) v s = Bool (semE e1 v s < semE e2 v s)
-semE (Or e1 e2) v s = orVal (semE e1 v s) (semE e2 v s)
 semE (And e1 e2) v s = andVal (semE e1 v s) (semE e2 v s)
+semE (Or e1 e2) v s = orVal (semE e1 v s) (semE e2 v s)
 semE (Not e) v s = notVal (semE e v s)
 
 --TODO FUNC
@@ -120,6 +121,8 @@ semS (BlockStmt d s1) v f s =
         semS s1 vd fd sd where
           (vd, fd, sd) = semD d v f s
 semS (Func func x) v f s = (f ! func) (semE x v s) s
+
+-- EXAMPLES --
 
 powerStmt :: Int -> Int -> Stmt
 powerStmt a b =
