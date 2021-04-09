@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds #-}
-import Data.Function
-import Data.List
+import Data.Function ()
+import Data.List ()
 import Data.Map ( (!), findMax, insert, null, singleton, Map, fromList, empty )
 
 type Var = String
@@ -22,7 +22,7 @@ andVal :: Val -> Val -> Val
 andVal (Bool a) (Bool b) = Bool (a && b)
 andVal a b = undefined
 orVal :: Val -> Val -> Val
-orVal (Bool a) (Bool b) = Bool (a || b) 
+orVal (Bool a) (Bool b) = Bool (a || b)
 orVal a b = undefined
 notVal :: Val -> Val
 notVal (Bool a) = Bool (not a)
@@ -139,9 +139,36 @@ powerStmt a b =
             ("x" := Mul (V "x") (V "c"))
             ("i" := Add (V "i") (C (Int 1)))))))
 
+personStmt :: String -> String -> Stmt
+personStmt a b =
+    BlockStmt
+      (DeclVar "s1"
+        (DeclVar "s2"
+          (DeclVar "b"
+            (DeclVar "w"
+              (DeclVar "out" EmptyDecl)))))
+      (SeqStmt
+        (SeqStmt ("s1" := C (String ";; Name: "))
+          (SeqStmt ("s2" := C (String ";; Surname: "))
+            (SeqStmt
+              ("b" := C (String "NoName"))
+              ("w" := C (String ";; I dont belive that")))))
+          (SeqStmt ("out" := Add (V "s1") (C (String a)))
+            (SeqStmt ("out" := Add (V "out") (V "s2"))
+             (SeqStmt ("out" := Add (V "out") (C (String b)))
+              (IfStmt
+                (Or (Equal (C (String a)) (V "b")) (Equal (C (String b)) (V "b")))
+                ("out" := Add (V "out") (V "w")))))))
+
 
 power :: Int -> Int -> Val
+person :: String -> String -> Val
+
 
 power a b = x where
   store = semS (powerStmt a b) Data.Map.empty Data.Map.empty Data.Map.empty
   x = store ! 0
+
+person a b = x where
+  store = semS (personStmt a b) Data.Map.empty Data.Map.empty Data.Map.empty
+  x = store ! 4
