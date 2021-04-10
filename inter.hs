@@ -3,6 +3,8 @@ import Data.Function ()
 import Data.List ()
 import Data.Map ( (!), findMax, insert, null, singleton, Map, fromList, empty, member )
 
+-- TODO -- Errors, Static typing
+
 -- LANGUAGE --
 
 type Var = String
