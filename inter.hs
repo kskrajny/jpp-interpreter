@@ -1,7 +1,7 @@
 module Inter where
 import Data.Function ()
 import Data.List ()
-import Data.Map ( (!), findMax, insert, null, singleton, Map, fromList, empty )
+import Data.Map ( (!), findMax, insert, null, singleton, Map, fromList, empty, member )
 
 -- LANGUAGE --
 
@@ -18,7 +18,12 @@ data Val
   = String String
   | Int Int
   | Bool Bool
-  deriving (Show, Eq, Ord)
+  deriving(Eq, Ord)
+
+instance Show Val where
+  show (String a) = a
+  show (Bool a) = show a
+  show (Int a) = show a
 
 data Exp
   = V Var
@@ -46,7 +51,8 @@ data Stmt
   | WhileStmt Exp Stmt         -- while
   | SkipStmt                    -- skip
   | BlockStmt Decl Stmt         -- block statement
-  | Func Var Exp                -- function 
+  | FuncStmt Var Exp                -- function
+  | PrintStmt Exp                   -- print
 
 
 andVal :: Val -> Val -> Val
@@ -70,10 +76,14 @@ divVal (Int a) (Int b) = Int (div a b)
 castBool :: Val -> Bool
 castBool (Bool a) = a
 castBool a = undefined
+toString :: Val -> Val
+toString (Int a) = String (show a)
+toString (Bool a) = String (show a)
+toString a = a
 
 newloc :: Store -> Loc
 newloc s = if Data.Map.null s
-           then 0
+           then 1
            else fst(findMax s) + 1
 
 semE :: Exp -> VEnv -> Store -> Val
@@ -120,9 +130,31 @@ semS (WhileStmt e s1) v f s =
 semS (BlockStmt d s1) v f s =
         semS s1 vd fd sd where
           (vd, fd, sd) = semD d v f s
-semS (Func func x) v f s = (f ! func) (semE x v s) s
+semS (FuncStmt func x) v f s = (f ! func) (semE x v s) s
+semS (PrintStmt e) v f s = if Data.Map.member 0 s
+  then Data.Map.insert 0
+    (addVal
+      (addVal (toString (s ! 0)) (toString (semE e v s)))
+      (String "\n")) s
+  else Data.Map.insert 0 (toString (semE e v s)) s
+
+execute :: Stmt -> IO()
+execute s = putStr (
+    show (
+      semS s
+        Data.Map.empty
+        Data.Map.empty 
+        (Data.Map.fromList [(0, String "")])! 0))
 
 -- EXAMPLES --
+
+printStmt :: Stmt
+printStmt =
+  SeqStmt
+    (PrintStmt (C (String "jazda")))
+    (SeqStmt
+      (PrintStmt (C (Int 5)))
+      (PrintStmt (C (Bool True))))
 
 powerStmt :: Int -> Int -> Stmt
 powerStmt a b =
@@ -137,12 +169,14 @@ powerStmt a b =
           (SeqStmt ("n" := C (Int b)) ("c" := C (Int a)))))
       (IfElseStmt
         (Less (V "n") (C (Int 0)))
-        ("x" := C (Int (-1)))
-        (WhileStmt
-          (Less (V "i") (V "n"))
-          (SeqStmt
-            ("x" := Mul (V "x") (V "c"))
-            ("i" := Add (V "i") (C (Int 1)))))))
+        (PrintStmt (C (String "Cant count it")))
+        (SeqStmt
+          (WhileStmt
+            (Less (V "i") (V "n"))
+            (SeqStmt
+              ("x" := Mul (V "x") (V "c"))
+              ("i" := Add (V "i") (C (Int 1)))))
+          (PrintStmt (V "x")))))
 
 personStmt :: String -> String -> Stmt
 personStmt a b =
@@ -153,17 +187,19 @@ personStmt a b =
             (DeclVar "w"
               (DeclVar "out" EmptyDecl)))))
       (SeqStmt
-        (SeqStmt ("s1" := C (String ";; Name: "))
-          (SeqStmt ("s2" := C (String ";; Surname: "))
-            (SeqStmt
-              ("b" := C (String "NoName"))
-              ("w" := C (String ";; I dont belive that")))))
-          (SeqStmt ("out" := Add (V "s1") (C (String a)))
-            (SeqStmt ("out" := Add (V "out") (V "s2"))
-             (SeqStmt ("out" := Add (V "out") (C (String b)))
-              (IfStmt
-                (Or (Equal (C (String a)) (V "b")) (Equal (C (String b)) (V "b")))
-                ("out" := Add (V "out") (V "w")))))))
+        (SeqStmt
+          (SeqStmt ("s1" := C (String ";; Name: "))
+            (SeqStmt ("s2" := C (String ";; Surname: "))
+              (SeqStmt
+                ("b" := C (String "NoName"))
+                ("w" := C (String ";; I dont belive that")))))
+            (SeqStmt ("out" := Add (V "s1") (C (String a)))
+              (SeqStmt ("out" := Add (V "out") (V "s2"))
+              (SeqStmt ("out" := Add (V "out") (C (String b)))
+                (IfStmt
+                  (Or (Equal (C (String a)) (V "b")) (Equal (C (String b)) (V "b")))
+                  ("out" := Add (V "out") (V "w")))))))
+        (PrintStmt (V "out")))
 
 funcStmt :: Int -> Stmt
 funcStmt x =
@@ -176,20 +212,6 @@ funcStmt x =
           (Less (V "return") (C (Int 100)))
           ("return" := Mul (V "return") (V "x"))))
           EmptyDecl))
-    (Func "f" (C (Int x)))
-
-power :: Int -> Int -> Val
-person :: String -> String -> Val
-func :: Int -> Val
-
-power a b = x where
-  store = semS (powerStmt a b) Data.Map.empty Data.Map.empty Data.Map.empty
-  x = store ! 0
-
-person a b = x where
-  store = semS (personStmt a b) Data.Map.empty Data.Map.empty Data.Map.empty
-  x = store ! 4
-
-func a = x where
-  store = semS (funcStmt a) Data.Map.empty Data.Map.empty Data.Map.empty
-  x = store ! 0
+    (SeqStmt
+      (FuncStmt "f" (C (Int x)))
+      (PrintStmt (V "y")))
