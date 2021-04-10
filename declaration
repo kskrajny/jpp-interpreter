@@ -14,4 +14,4 @@ Exp e = C v | V x | Add e1 e2 | Mul e1 e2 | Sub e1 e2 | Div e1 e2 |
 Decl d = DeclVar x d | DeclFunc x1 x2 x3 S d | EmptyDecl
 
 Stmt S = x := e | SeqStmt S1 S2 | IfStmt e S | IfElseStmt e S1 S2 |
-    WhileStmt b S | SkipStmt | BlockStmt d S | Func x e | Print e
+    WhileStmt b S | SkipStmt | BlockStmt d S | FuncStmt x e | PrintStmt e
