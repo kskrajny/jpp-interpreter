@@ -138,8 +138,8 @@ semS (PrintStmt e) v f s = if Data.Map.member 0 s
       (String "\n")) s
   else Data.Map.insert 0 (toString (semE e v s)) s
 
-execute :: Stmt -> IO()
-execute s = putStr (
+exec :: Stmt -> IO()
+exec s = putStr (
     show (
       semS s
         Data.Map.empty
@@ -151,9 +151,9 @@ execute s = putStr (
 printStmt :: Stmt
 printStmt =
   SeqStmt
-    (PrintStmt (C (String "jazda")))
+    (PrintStmt (C (String "Słowo")))
     (SeqStmt
-      (PrintStmt (C (Int 5)))
+      (PrintStmt (C (Int 1)))
       (PrintStmt (C (Bool True))))
 
 powerStmt :: Int -> Int -> Stmt
@@ -188,11 +188,11 @@ personStmt a b =
               (DeclVar "out" EmptyDecl)))))
       (SeqStmt
         (SeqStmt
-          (SeqStmt ("s1" := C (String ";; Name: "))
-            (SeqStmt ("s2" := C (String ";; Surname: "))
+          (SeqStmt ("s1" := C (String "; Name: "))
+            (SeqStmt ("s2" := C (String "; Surname: "))
               (SeqStmt
                 ("b" := C (String "NoName"))
-                ("w" := C (String ";; I dont belive that")))))
+                ("w" := C (String "; I dont belive that")))))
             (SeqStmt ("out" := Add (V "s1") (C (String a)))
               (SeqStmt ("out" := Add (V "out") (V "s2"))
               (SeqStmt ("out" := Add (V "out") (C (String b)))
