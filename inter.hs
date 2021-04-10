@@ -230,3 +230,12 @@ rekStmt a b =
             (PrintStmt (V "x"))))
           EmptyDecl))
       (FuncStmt "f" (C (Int a)))
+  
+-- is this example os staic typing already ?
+badStmt :: Stmt
+badStmt =
+  SeqStmt
+    (PrintStmt (C (String "Start")))
+    (IfStmt
+      (Add (C (Int 2)) (C (Int 2)))
+      (PrintStmt (C (String "WTF"))))
