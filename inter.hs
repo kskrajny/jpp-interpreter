@@ -109,8 +109,8 @@ semD (DeclVar x d) v f s =
     l = newloc s
 semD (DeclFunc x in_arg out_arg s1 d) v f s = semD d v fd s where
   fd = Data.Map.insert x func f
-  l1 = newloc s
   func a s = semS s1 vf fd sf where
+    l1 = newloc s
     vf = Data.Map.insert "return" (v ! out_arg) (Data.Map.insert in_arg l1 v)
     sf = Data.Map.insert (v ! out_arg) undefined (Data.Map.insert l1 a s)
 
@@ -215,3 +215,18 @@ funcStmt x =
     (SeqStmt
       (FuncStmt "f" (C (Int x)))
       (PrintStmt (V "y")))
+
+rekStmt :: Int -> Int -> Stmt
+rekStmt a b =
+  BlockStmt
+    (DeclVar "y"
+      (DeclFunc "f" "x" "y"
+        (IfStmt
+          (Less (V "x") (C (Int b)))
+          (SeqStmt
+            (SeqStmt
+              ("x" := Add (V "x") (C (Int 1)))
+              (FuncStmt "f" (V "x")))
+            (PrintStmt (V "x"))))
+          EmptyDecl))
+      (FuncStmt "f" (C (Int a)))
