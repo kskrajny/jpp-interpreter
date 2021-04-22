@@ -1,8 +1,14 @@
+{-# LANGUAGE BlockArguments #-}
 module Inter where
 import Data.Function ()
 import Data.List ()
 import Data.Map ( (!), findMax, insert, null, singleton, Map, fromList, empty, member )
-
+import System.IO
+import Control.Monad
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Expr
+import Text.ParserCombinators.Parsec.Language
+import qualified Text.ParserCombinators.Parsec.Token as Token
 -- TODO -- Errors, Static typing
 
 -- LANGUAGE --
@@ -14,11 +20,9 @@ type VEnv = Map String Loc
 type Proc = Val -> Store -> Store
 type FEnv = Map String Proc
 
-infix 1 :=
-
 data Val
   = String String
-  | Int Int
+  | Int Integer
   | Bool Bool
   deriving(Eq, Ord)
 
@@ -46,7 +50,7 @@ data Decl
   | EmptyDecl
 
 data Stmt
-  = Var := Exp                  -- assignment                                                
+  = AssignStmt Var Exp                  -- assignment                                                
   | SeqStmt Stmt Stmt           -- sequence
   | IfStmt Exp Stmt            -- if
   | IfElseStmt Exp Stmt Stmt   -- if else
@@ -119,7 +123,7 @@ semD (DeclFunc x in_arg out_arg s1 d) v f s = semD d v fd s where
 
 semS :: Stmt -> VEnv -> FEnv -> Store -> Store
 semS SkipStmt v f s = s
-semS (x := e) v f s = Data.Map.insert (v ! x) (semE e v s) s
+semS (AssignStmt x e) v f s = Data.Map.insert (v ! x) (semE e v s) s
 semS (SeqStmt s1 s2) v f s = semS s2 v f (semS s1 v f s)
 semS (IfStmt e s1) v f s =
        if castBool (semE e v s) then semS s1 v f s else s
@@ -145,7 +149,7 @@ exec s = putStr (
     show (
       semS s
         Data.Map.empty
-        Data.Map.empty 
+        Data.Map.empty
         (Data.Map.fromList [(0, String "")])! 0))
 
 -- EXAMPLES --
@@ -166,9 +170,9 @@ powerStmt a b =
         (DeclVar "n"
           (DeclVar "c" EmptyDecl))))
     (SeqStmt
-      (SeqStmt ("x" := C (Int 1))
-        (SeqStmt ("i" := C (Int 0))
-          (SeqStmt ("n" := C (Int b)) ("c" := C (Int a)))))
+      (SeqStmt (AssignStmt "x" (C (Int 1)))
+        (SeqStmt (AssignStmt "i" (C (Int 0)))
+          (SeqStmt (AssignStmt "n" (C (Int (toInteger b)))) (AssignStmt "c" (C (Int (toInteger a)))))))
       (IfElseStmt
         (Less (V "n") (C (Int 0)))
         (PrintStmt (C (String "Cant count it")))
@@ -176,8 +180,8 @@ powerStmt a b =
           (WhileStmt
             (Less (V "i") (V "n"))
             (SeqStmt
-              ("x" := Mul (V "x") (V "c"))
-              ("i" := Add (V "i") (C (Int 1)))))
+              (AssignStmt "x" (Mul (V "x") (V "c")))
+              (AssignStmt "i" (Add (V "i") (C (Int 1))))))
           (PrintStmt (V "x")))))
 
 personStmt :: String -> String -> Stmt
@@ -190,17 +194,17 @@ personStmt a b =
               (DeclVar "out" EmptyDecl)))))
       (SeqStmt
         (SeqStmt
-          (SeqStmt ("s1" := C (String "; Name: "))
-            (SeqStmt ("s2" := C (String "; Surname: "))
+          (SeqStmt (AssignStmt "s1" (C (String "; Name: ")))
+            (SeqStmt (AssignStmt "s2" (C (String "; Surname: ")))
               (SeqStmt
-                ("b" := C (String "NoName"))
-                ("w" := C (String "; I dont belive that")))))
-            (SeqStmt ("out" := Add (V "s1") (C (String a)))
-              (SeqStmt ("out" := Add (V "out") (V "s2"))
-              (SeqStmt ("out" := Add (V "out") (C (String b)))
+                (AssignStmt "b" (C (String "NoName")))
+                (AssignStmt "w" (C (String "; I dont belive that"))))))
+            (SeqStmt (AssignStmt "out" (Add (V "s1") (C (String a))))
+              (SeqStmt (AssignStmt "out" (Add (V "out") (V "s2")))
+              (SeqStmt (AssignStmt "out" (Add (V "out") (C (String b))))
                 (IfStmt
                   (Or (Equal (C (String a)) (V "b")) (Equal (C (String b)) (V "b")))
-                  ("out" := Add (V "out") (V "w")))))))
+                  (AssignStmt "out" (Add (V "out") (V "w"))))))))
         (PrintStmt (V "out")))
 
 funcStmt :: Int -> Stmt
@@ -209,13 +213,13 @@ funcStmt x =
     (DeclVar "y"
       (DeclFunc "f" "x" "y"
       (SeqStmt
-        ("return" := V "x")
+        (AssignStmt "return" (V "x"))
         (WhileStmt
           (Less (V "return") (C (Int 100)))
-          ("return" := Mul (V "return") (V "x"))))
+          (AssignStmt "return" (Mul (V "return") (V "x")))))
           EmptyDecl))
     (SeqStmt
-      (FuncStmt "f" (C (Int x)))
+      (FuncStmt "f" (C (Int (toInteger x))))
       (PrintStmt (V "y")))
 
 rekStmt :: Int -> Int -> Stmt
@@ -224,15 +228,15 @@ rekStmt a b =
     (DeclVar "y"
       (DeclFunc "f" "x" "y"
         (IfStmt
-          (Less (V "x") (C (Int b)))
+          (Less (V "x") (C (Int (toInteger b))))
           (SeqStmt
             (SeqStmt
-              ("x" := Add (V "x") (C (Int 1)))
+              (AssignStmt "x" (Add (V "x") (C (Int 1))))
               (FuncStmt "f" (V "x")))
             (PrintStmt (V "x"))))
           EmptyDecl))
-      (FuncStmt "f" (C (Int a)))
-  
+      (FuncStmt "f" (C (Int (toInteger a))))
+
 -- is this example os staic typing already ?
 badStmt :: Stmt
 badStmt =
@@ -241,3 +245,110 @@ badStmt =
     (IfStmt
       (Add (C (Int 2)) (C (Int 2)))
       (PrintStmt (C (String "WTF"))))
+
+languageDef =
+  emptyDef { Token.identStart      = letter
+           , Token.identLetter     = alphaNum
+           , Token.reservedNames   = [ "if"
+                                     , "then"
+                                     , "else"
+                                     , "while"
+                                     , "do"
+                                     , "skip"
+                                     , "function"
+                                     , "var"
+                                     , "block"
+                                     , "true"
+                                     , "false"
+                                     , "not"
+                                     , "and"
+                                     , "or"
+                                     ]
+           , Token.reservedOpNames = ["+", "-", "*", "/", ":=", "=="
+                                     , "<", "and", "or", "not"
+                                     ]
+           }
+lexer = Token.makeTokenParser languageDef
+identifier = Token.identifier lexer -- parses an identifier
+reserved   = Token.reserved   lexer -- parses a reserved name
+reservedOp = Token.reservedOp lexer -- parses an operator
+parens     = Token.parens     lexer -- parses surrounding parenthesis:
+                                    --   parens p
+                                    -- takes care of the parenthesis and
+                                    -- uses p to parse what's inside them
+integer    = Token.integer    lexer -- parses an integer
+stringLiteral = Token.stringLiteral lexer -- parses an integer
+semi       = Token.semi       lexer -- parses a semicolon
+whiteSpace = Token.whiteSpace lexer -- parses whitespace
+
+mainParser :: Parser Stmt
+mainParser = whiteSpace >> statement
+
+statement :: Parser Stmt
+statement = parens statement
+          <|> sequenceOfStmt
+
+
+helpseq :: [Stmt] -> Stmt
+helpseq (x:xs) = SeqStmt x (helpseq xs)
+
+sequenceOfStmt =
+  do list <- sepBy1 statement' semi
+     -- If there's only one statement return it without using Seq.
+     return $ if length list == 1 then head list else helpseq list
+
+statement' :: Parser Stmt
+statement' = ifStmt
+           <|> whileStmt
+           <|> assignStmt
+           <|> skipStmt
+
+
+ifStmt :: Parser Stmt
+ifStmt =
+  do reserved "if"
+     cond  <- expression
+     reserved "then"
+     IfStmt cond <$> statement
+
+whileStmt :: Parser Stmt
+whileStmt =
+  do reserved "while"
+     cond <- expression
+     reserved "do"
+     WhileStmt cond <$> statement
+
+assignStmt :: Parser Stmt
+assignStmt =
+  do var <- identifier
+     reservedOp ":="
+     AssignStmt var <$> expression
+
+skipStmt :: Parser Stmt
+skipStmt = reserved "skip" >> return SkipStmt
+
+expression :: Parser Exp
+expression = buildExpressionParser operators aTerm
+
+operators = [[Infix  (reservedOp "*"   >> return Mul) AssocLeft,
+                Infix  (reservedOp "/"   >> return Div) AssocLeft]
+             , [Infix  (reservedOp "+"   >> return Add) AssocLeft,
+                Infix  (reservedOp "-"   >> return Sub) AssocLeft]
+             , [Prefix (reservedOp "not" >> return Not)]
+             , [Infix  (reservedOp "and" >> return And) AssocLeft,
+                Infix  (reservedOp "or"  >> return Or) AssocLeft]
+             , [Infix (reservedOp "==" >> return Equal) AssocLeft,
+                Infix (reservedOp "<" >> return Less) AssocLeft]
+             ]
+
+aTerm = parens expression
+     <|> C <$> value
+     <|> V <$> identifier
+
+value :: Parser Val
+value = String <$> stringLiteral
+    <|> Int <$> integer
+    <|> (reserved "true"  >> return (Bool True))
+    <|> (reserved "false" >> return (Bool False))
+
+relation = reservedOp "<" >> return Less
