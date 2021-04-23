@@ -1,20 +1,20 @@
 Int i = 0 | 1 | (-1) | 2 | (-2) | ...
 
-Bool b = True | False
+Bool b = true | false
 
 String s = "<ciąg liter i cyfr>"
 
-Val v = Int i | String s | Bool b 
+Val v = i | s | b 
 
 Var x = <ciąg liter i cyfr>
 
-Exp e = C v | V x | Add e1 e2 | Mul e1 e2 | Sub e1 e2 | Div e1 e2 |
-    Equal e1 e2 | Less e1 e2 | And e1 e2 | Or e1 e2 | Not e
+Exp e = v | x | e1 + e2 | e1 * e2 | e1 - e2 | e1 / e2 |
+    e1 == e2 | e1 < e2 | e1 and e2 | e1 or e2 | not e
 
-Decl d = DeclVar x d | DeclFunc x1 x2 x3 S d | EmptyDecl
+Decl d = var x d | func x1 x2 x3 S d | end declare
 
-Stmt S = x := e | SeqStmt S1 S2 | IfStmt e S | IfElseStmt e S1 S2 |
-    WhileStmt b S | SkipStmt | BlockStmt d S | FuncStmt x e | PrintStmt e
+Stmt S = x := e |  S1; S2 | if e then S | if e then S1 else S2 |
+    while b do S | skip | declare d S | run x e | print e
 
 
 exec :: Stmt -> IO()

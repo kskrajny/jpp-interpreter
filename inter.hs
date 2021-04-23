@@ -154,16 +154,16 @@ exec s = putStr (
 
 -- EXAMPLES --
 
-printingStmt :: Stmt
-printingStmt =
+printStmtTest :: Stmt
+printStmtTest =
   SeqStmt
     (PrintStmt (C (String "Słowo")))
     (SeqStmt
       (PrintStmt (C (Int 1)))
       (PrintStmt (C (Bool True))))
 
-powerStmt :: Int -> Int -> Stmt
-powerStmt a b =
+powerStmtTest :: Int -> Int -> Stmt
+powerStmtTest a b =
   BlockStmt
     (DeclVar "x"
       (DeclVar "i"
@@ -184,8 +184,8 @@ powerStmt a b =
               (AssignStmt "i" (Add (V "i") (C (Int 1))))))
           (PrintStmt (V "x")))))
 
-personStmt :: String -> String -> Stmt
-personStmt a b =
+personStmtTest :: String -> String -> Stmt
+personStmtTest a b =
     BlockStmt
       (DeclVar "s1"
         (DeclVar "s2"
@@ -207,8 +207,8 @@ personStmt a b =
                   (AssignStmt "out" (Add (V "out") (V "w"))))))))
         (PrintStmt (V "out")))
 
-funcStmt :: Int -> Stmt
-funcStmt x =
+funcStmtTest :: Int -> Stmt
+funcStmtTest x =
   BlockStmt
     (DeclVar "y"
       (DeclFunc "f" "x" "y"
@@ -222,8 +222,8 @@ funcStmt x =
       (FuncStmt "f" (C (Int (toInteger x))))
       (PrintStmt (V "y")))
 
-rekStmt :: Int -> Int -> Stmt
-rekStmt a b =
+rekStmtTest :: Int -> Int -> Stmt
+rekStmtTest a b =
   BlockStmt
     (DeclVar "y"
       (DeclFunc "f" "x" "y"
@@ -238,8 +238,8 @@ rekStmt a b =
       (FuncStmt "f" (C (Int (toInteger a))))
 
 -- is this example os staic typing already ?
-badStmt :: Stmt
-badStmt =
+badStmtTest :: Stmt
+badStmtTest =
   SeqStmt
     (PrintStmt (C (String "Start")))
     (IfStmt
@@ -256,9 +256,11 @@ languageDef =
                                      , "do"
                                      , "skip"
                                      , "print"
-                                     , "function"
+                                     , "run"
+                                     , "func"
                                      , "var"
-                                     , "block"
+                                     , "declare"
+                                     , "end declare"
                                      , "true"
                                      , "false"
                                      , "not"
@@ -291,7 +293,7 @@ statement = parens statement
 
 
 helpseq :: [Stmt] -> Stmt
-helpseq (x:xs) = SeqStmt x (helpseq xs)
+helpseq = foldr SeqStmt SkipStmt
 
 sequenceOfStmt =
   do list <- sepBy1 statement' semi
@@ -299,12 +301,14 @@ sequenceOfStmt =
      return $ if length list == 1 then head list else helpseq list
 
 statement' :: Parser Stmt
-statement' = ifStmt
+statement' = ifElseStmt
            <|> whileStmt
            <|> assignStmt
            <|> skipStmt
            <|> printStmt
-
+           <|> ifStmt
+           <|> blockStmt
+           <|> funcStmt
 
 ifStmt :: Parser Stmt
 ifStmt =
@@ -334,8 +338,52 @@ printStmt =
   do reserved "print"
      PrintStmt <$> expression
 
+ifElseStmt :: Parser Stmt
+ifElseStmt =
+  do reserved "if"
+     cond <- expression
+     reserved "then"
+     stmt <- statement
+     reserved "else" 
+     IfElseStmt cond stmt <$> statement
+
+blockStmt :: Parser Stmt
+blockStmt =
+  do reserved "declare"
+     decl <- declaration
+     BlockStmt decl <$> statement
+
+funcStmt :: Parser Stmt
+funcStmt = 
+  do reserved "run"
+     var <- identifier
+     FuncStmt var <$> expression
+
+declaration :: Parser Decl
+declaration = declVar
+      <|> declFunc
+      <|> (reserved "end declare" >> return EmptyDecl)
+
+declVar :: Parser Decl
+declVar =
+  do reserved "var"
+     var <- identifier
+     semi
+     DeclVar var <$> declaration
+
+declFunc :: Parser Decl
+declFunc =
+  do reserved "func"
+     var1 <- identifier
+     var2 <- identifier
+     var3 <- identifier
+     stmt <- statement
+     DeclFunc var1 var2 var3 stmt <$> declaration
+
 expression :: Parser Exp
 expression = buildExpressionParser operators aTerm
+    <|> aTerm
+
 
 operators = [[Infix  (reservedOp "*"   >> return Mul) AssocLeft,
                 Infix  (reservedOp "/"   >> return Div) AssocLeft]
@@ -374,5 +422,5 @@ parseFile file =
        Left e  -> print e >> fail "parse error"
        Right r -> return r
 
-program1 =  "if true then print 1"
-
+program1 =  "if true then print 1; if true then print 2; if true then print 3"
+program2 = "declare var x; var y; end declare x := 0; y := 5; while x < 5 do (print x; x := x + 1) print x"
