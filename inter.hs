@@ -154,8 +154,8 @@ exec s = putStr (
 
 -- EXAMPLES --
 
-printStmt :: Stmt
-printStmt =
+printingStmt :: Stmt
+printingStmt =
   SeqStmt
     (PrintStmt (C (String "Słowo")))
     (SeqStmt
@@ -255,6 +255,7 @@ languageDef =
                                      , "while"
                                      , "do"
                                      , "skip"
+                                     , "print"
                                      , "function"
                                      , "var"
                                      , "block"
@@ -302,6 +303,7 @@ statement' = ifStmt
            <|> whileStmt
            <|> assignStmt
            <|> skipStmt
+           <|> printStmt
 
 
 ifStmt :: Parser Stmt
@@ -326,6 +328,11 @@ assignStmt =
 
 skipStmt :: Parser Stmt
 skipStmt = reserved "skip" >> return SkipStmt
+
+printStmt :: Parser Stmt
+printStmt =
+  do reserved "print"
+     PrintStmt <$> expression
 
 expression :: Parser Exp
 expression = buildExpressionParser operators aTerm
@@ -352,3 +359,20 @@ value = String <$> stringLiteral
     <|> (reserved "false" >> return (Bool False))
 
 relation = reservedOp "<" >> return Less
+
+parseString :: String -> Stmt
+parseString str =
+  case parse mainParser "" str of
+    Left e  -> error $ show e
+    Right r -> r
+
+
+parseFile :: String -> IO Stmt
+parseFile file =
+  do program  <- readFile file
+     case parse mainParser "" program of
+       Left e  -> print e >> fail "parse error"
+       Right r -> return r
+
+program1 =  "if true then print 1"
+
