@@ -2,47 +2,43 @@ Int i = 0 | 1 | (-1) | 2 | (-2) | ...
 
 Bool b = true | false
 
-String s = "<ciąg liter i cyfr>"
+String s = "<sequence of letters and numbers>"
 
 Val v = i | s | b 
 
-Var x = <ciąg liter i cyfr>
+Var x = <sequence of letters and numbers>
 
 Exp e = v | x | e1 + e2 | e1 * e2 | e1 - e2 | e1 / e2 |
     e1 == e2 | e1 < e2 | e1 and e2 | e1 or e2 | not e
 
 Decl d = var x d | func x1 x2 x3 S d | end declare
 
-Stmt S = x := e |  S1; S2 | if e then S | if e then S1 else S2 |
+Stmt S = x := e |  S1; S2 | if e then S1 else S2 |
     while b do S | skip | declare d S | run x e | print e
 
 
 exec :: Stmt -> IO()
-    - uruchamia dany w argumencie Stmt
-    - wypisuje te wyrażenia, które były argumentem PrintStmt w trakcie działaia programu 
+    - runs given Stmt
+    - write expressions (args of PrintStmt) when program is finished
 
+Most of statements acts traditionally and I omit them in description.
 
-Większość konstrukcji zachowują się tradycyjnie i o nich nie wspominam.
+PrintStmt does not write but saves strings to be written when program is finished.
 
-PrintStmt nie wypisuje, a zapisuje to, co ma być wypisane na koniec programu.
+x2, x3 in sfunction declaration (DeclFunc) are args in / out,
+When function is finished x3 contains return value of this function.
 
-x2, x3 w deklaracji funkcji (DeclFunc) są odpowiednio argumentami in / out,
-tzn, po zakończeniu funkcji wynik wykonania funkcji jest zapisywany do x3.
+Static visibility of identifiers.
 
-Widoczność identyfikatorów jest statyczna.
+Declared function is interpereted in env where:
+- variable "return" is silently declared using newloc to undefined,
+- identifier x2 is silently declared using newloc, its value is set when function is called,
+- the same function is visible, recursion works 
 
-Zadeklarowane funkcje są zinterpretowane w środowisku gdzie:
-- zmienna "return" jest deklarowana niejawnie przy pomocy newloc,
-    wartość pod nowym adresem to undefined
-- identyfikator x2 jest deklarowany niejawnie przy pomocy newloc,
-    wartość pod nowym adresem jest ustalana w momencie wywołania funkcji
-- widoczna jest ta funkcja, zatem możliwa jest rekurencja 
+This statement, '"return" := e', saves result of a function. 
 
-Wynik funkcji jest zapisywany w następujący sposób "return" := e.
+Function call can change only value of address (Loc) pointed by identifier x3 from declaration.
 
-Wywołanie funkcji zmienia tylko wartość pod adresem (Loc) wskazywanym przez
-identyfikatore x3 z deklaracji.
+Identifier x3 must exist.
 
-Wymagamy, aby x3 istaniło.
-
-x2 jest przekazywane przez wartość, a x3 przez referencje.
+x2 is passed by value, x3 is passed by reference.

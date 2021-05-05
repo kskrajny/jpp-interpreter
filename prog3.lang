@@ -1,0 +1,19 @@
+print 0;
+if true
+then (
+    print 1
+) else (
+    skip
+);
+if true
+then ( 
+    print 2 
+) else (
+    skip
+);
+if true
+then (
+    print 3
+) else (
+    skip
+)

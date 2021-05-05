@@ -52,7 +52,6 @@ data Decl
 data Stmt
   = AssignStmt Var Exp                  -- assignment                                                
   | SeqStmt Stmt Stmt           -- sequence
-  | IfStmt Exp Stmt            -- if
   | IfElseStmt Exp Stmt Stmt   -- if else
   | WhileStmt Exp Stmt         -- while
   | SkipStmt                    -- skip
@@ -125,8 +124,6 @@ semS :: Stmt -> VEnv -> FEnv -> Store -> Store
 semS SkipStmt v f s = s
 semS (AssignStmt x e) v f s = Data.Map.insert (v ! x) (semE e v s) s
 semS (SeqStmt s1 s2) v f s = semS s2 v f (semS s1 v f s)
-semS (IfStmt e s1) v f s =
-       if castBool (semE e v s) then semS s1 v f s else s
 semS (IfElseStmt e s1 s2) v f s =
        if castBool (semE e v s) then semS s1 v f s else semS s2 v f s
 semS (WhileStmt e s1) v f s =
@@ -152,99 +149,7 @@ exec s = putStr (
         Data.Map.empty
         (Data.Map.fromList [(0, String "")])! 0))
 
--- EXAMPLES --
-
-printStmtTest :: Stmt
-printStmtTest =
-  SeqStmt
-    (PrintStmt (C (String "Słowo")))
-    (SeqStmt
-      (PrintStmt (C (Int 1)))
-      (PrintStmt (C (Bool True))))
-
-powerStmtTest :: Int -> Int -> Stmt
-powerStmtTest a b =
-  BlockStmt
-    (DeclVar "x"
-      (DeclVar "i"
-        (DeclVar "n"
-          (DeclVar "c" EmptyDecl))))
-    (SeqStmt
-      (SeqStmt (AssignStmt "x" (C (Int 1)))
-        (SeqStmt (AssignStmt "i" (C (Int 0)))
-          (SeqStmt (AssignStmt "n" (C (Int (toInteger b)))) (AssignStmt "c" (C (Int (toInteger a)))))))
-      (IfElseStmt
-        (Less (V "n") (C (Int 0)))
-        (PrintStmt (C (String "Cant count it")))
-        (SeqStmt
-          (WhileStmt
-            (Less (V "i") (V "n"))
-            (SeqStmt
-              (AssignStmt "x" (Mul (V "x") (V "c")))
-              (AssignStmt "i" (Add (V "i") (C (Int 1))))))
-          (PrintStmt (V "x")))))
-
-personStmtTest :: String -> String -> Stmt
-personStmtTest a b =
-    BlockStmt
-      (DeclVar "s1"
-        (DeclVar "s2"
-          (DeclVar "b"
-            (DeclVar "w"
-              (DeclVar "out" EmptyDecl)))))
-      (SeqStmt
-        (SeqStmt
-          (SeqStmt (AssignStmt "s1" (C (String "; Name: ")))
-            (SeqStmt (AssignStmt "s2" (C (String "; Surname: ")))
-              (SeqStmt
-                (AssignStmt "b" (C (String "NoName")))
-                (AssignStmt "w" (C (String "; I dont belive that"))))))
-            (SeqStmt (AssignStmt "out" (Add (V "s1") (C (String a))))
-              (SeqStmt (AssignStmt "out" (Add (V "out") (V "s2")))
-              (SeqStmt (AssignStmt "out" (Add (V "out") (C (String b))))
-                (IfStmt
-                  (Or (Equal (C (String a)) (V "b")) (Equal (C (String b)) (V "b")))
-                  (AssignStmt "out" (Add (V "out") (V "w"))))))))
-        (PrintStmt (V "out")))
-
-funcStmtTest :: Int -> Stmt
-funcStmtTest x =
-  BlockStmt
-    (DeclVar "y"
-      (DeclFunc "f" "x" "y"
-      (SeqStmt
-        (AssignStmt "return" (V "x"))
-        (WhileStmt
-          (Less (V "return") (C (Int 100)))
-          (AssignStmt "return" (Mul (V "return") (V "x")))))
-          EmptyDecl))
-    (SeqStmt
-      (FuncStmt "f" (C (Int (toInteger x))))
-      (PrintStmt (V "y")))
-
-rekStmtTest :: Int -> Int -> Stmt
-rekStmtTest a b =
-  BlockStmt
-    (DeclVar "y"
-      (DeclFunc "f" "x" "y"
-        (IfStmt
-          (Less (V "x") (C (Int (toInteger b))))
-          (SeqStmt
-            (SeqStmt
-              (AssignStmt "x" (Add (V "x") (C (Int 1))))
-              (FuncStmt "f" (V "x")))
-            (PrintStmt (V "x"))))
-          EmptyDecl))
-      (FuncStmt "f" (C (Int (toInteger a))))
-
--- is this example os staic typing already ?
-badStmtTest :: Stmt
-badStmtTest =
-  SeqStmt
-    (PrintStmt (C (String "Start")))
-    (IfStmt
-      (Add (C (Int 2)) (C (Int 2)))
-      (PrintStmt (C (String "WTF"))))
+-- PARSER --
 
 languageDef =
   emptyDef { Token.identStart      = letter
@@ -306,16 +211,8 @@ statement' = ifElseStmt
            <|> assignStmt
            <|> skipStmt
            <|> printStmt
-           <|> ifStmt
            <|> blockStmt
            <|> funcStmt
-
-ifStmt :: Parser Stmt
-ifStmt =
-  do reserved "if"
-     cond  <- expression
-     reserved "then"
-     IfStmt cond <$> statement
 
 whileStmt :: Parser Stmt
 whileStmt =
@@ -415,12 +312,9 @@ parseString str =
     Right r -> r
 
 
-parseFile :: String -> IO Stmt
+parseFile :: String -> IO()
 parseFile file =
   do program  <- readFile file
      case parse mainParser "" program of
        Left e  -> print e >> fail "parse error"
-       Right r -> return r
-
-program1 =  "if true then print 1; if true then print 2; if true then print 3"
-program2 = "declare var x; var y; end declare x := 0; y := 5; while x < 5 do (print x; x := x + 1) print x"
+       Right r -> exec r
