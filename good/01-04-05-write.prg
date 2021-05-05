@@ -1,20 +1,18 @@
-print "a";
-print 3 / 0;
 if true
 then (
-    print 1
+    print "String"
 ) else (
     skip
 );
 if true
 then ( 
-    print 2 
+    print 2
 ) else (
     skip
 );
 if true
 then (
-    print 3
+    print true
 ) else (
     skip
 )

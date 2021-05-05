@@ -1,5 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
-module Inter where
+module Main where
+import System.Environment
 import Data.Function ()
 import Data.List ()
 import Data.Map ( (!), findMax, insert, null, singleton, Map, fromList, empty, member )
@@ -141,13 +142,6 @@ semS (PrintStmt e) v f s = if Data.Map.member 0 s
       (String "\n")) s
   else Data.Map.insert 0 (toString (semE e v s)) s
 
-exec :: Stmt -> IO()
-exec s = putStr (
-    show (
-      semS s
-        Data.Map.empty
-        Data.Map.empty
-        (Data.Map.fromList [(0, String "")])! 0))
 
 -- PARSER --
 
@@ -305,11 +299,13 @@ value = String <$> stringLiteral
 
 relation = reservedOp "<" >> return Less
 
-parseString :: String -> Stmt
-parseString str =
-  case parse mainParser "" str of
-    Left e  -> error $ show e
-    Right r -> r
+exec :: Stmt -> IO()
+exec s = putStr (
+    show (
+      semS s
+        Data.Map.empty
+        Data.Map.empty
+        (Data.Map.fromList [(0, String "")])! 0))
 
 
 parseFile :: String -> IO()
@@ -318,3 +314,18 @@ parseFile file =
      case parse mainParser "" program of
        Left e  -> print e >> fail "parse error"
        Right r -> exec r
+
+parseString :: String -> IO()
+parseString str =
+  case parse mainParser "" str of
+    Left e  -> error $ show e
+    Right r -> exec r
+
+main = do
+    args <- getArgs
+    case args of 
+      [file] -> do
+         parseFile file
+      _ -> do 
+        x <- getLine
+        parseString x
