@@ -1,4 +1,3 @@
-{-# LANGUAGE BlockArguments #-}
 module Main where
 import System.Environment
 import Data.Function ()
@@ -40,7 +39,11 @@ data Exp
   | Mul Exp Exp     -- multiplication                                               
   | Div Exp Exp     -- division
   | Equal Exp Exp       -- equal
+  | NotEqual Exp Exp       -- equal
   | Less Exp Exp        -- less
+  | Greater Exp Exp        -- greater
+  | LessEq Exp Exp
+  | GreaterEq Exp Exp
   | Or Exp Exp        -- or
   | And Exp Exp       -- and
   | Not Exp            -- not
@@ -100,7 +103,11 @@ semE (Sub e1 e2) v s = subVal (semE e1 v s) (semE e2 v s)
 semE (Mul e1 e2) v s = mulVal (semE e1 v s) (semE e2 v s)
 semE (Div e1 e2) v s = divVal (semE e1 v s) (semE e2 v s)
 semE (Equal e1 e2) v s = Bool (semE e1 v s == semE e2 v s)
+semE (NotEqual e1 e2) v s = Bool (semE e1 v s /= semE e2 v s)
 semE (Less e1 e2) v s = Bool (semE e1 v s < semE e2 v s)
+semE (Greater e1 e2) v s = Bool (semE e1 v s > semE e2 v s)
+semE (LessEq e1 e2) v s = Bool (semE e1 v s <= semE e2 v s)
+semE (GreaterEq e1 e2) v s = Bool (semE e1 v s >= semE e2 v s)
 semE (And e1 e2) v s = andVal (semE e1 v s) (semE e2 v s)
 semE (Or e1 e2) v s = orVal (semE e1 v s) (semE e2 v s)
 semE (Not e) v s = notVal (semE e v s)
@@ -168,6 +175,7 @@ languageDef =
                                      ]
            , Token.reservedOpNames = ["+", "-", "*", "/", ":=", "=="
                                      , "<", "and", "or", "not"
+                                     , ">", "<=", ">=", "!="
                                      ]
            }
 lexer = Token.makeTokenParser languageDef
@@ -235,7 +243,7 @@ ifElseStmt =
      cond <- expression
      reserved "then"
      stmt <- statement
-     reserved "else" 
+     reserved "else"
      IfElseStmt cond stmt <$> statement
 
 blockStmt :: Parser Stmt
@@ -245,7 +253,7 @@ blockStmt =
      BlockStmt decl <$> statement
 
 funcStmt :: Parser Stmt
-funcStmt = 
+funcStmt =
   do reserved "run"
      var <- identifier
      FuncStmt var <$> expression
@@ -284,7 +292,11 @@ operators = [[Infix  (reservedOp "*"   >> return Mul) AssocLeft,
              , [Infix  (reservedOp "and" >> return And) AssocLeft,
                 Infix  (reservedOp "or"  >> return Or) AssocLeft]
              , [Infix (reservedOp "==" >> return Equal) AssocLeft,
-                Infix (reservedOp "<" >> return Less) AssocLeft]
+                Infix (reservedOp "!=" >> return NotEqual) AssocLeft,
+                Infix (reservedOp "<=" >> return LessEq) AssocLeft,
+                Infix (reservedOp "<" >> return Less) AssocLeft,
+                Infix (reservedOp ">=" >> return GreaterEq) AssocLeft,
+                Infix (reservedOp ">" >> return Greater) AssocLeft]
              ]
 
 aTerm = parens expression
@@ -323,9 +335,9 @@ parseString str =
 
 main = do
     args <- getArgs
-    case args of 
+    case args of
       [file] -> do
          parseFile file
-      _ -> do 
+      _ -> do
         x <- getLine
         parseString x

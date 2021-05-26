@@ -1,0 +1,81 @@
+  Na 15 punktów
++2                                  OK  01 (trzy typy)
++2                                  OK  02 (literały, arytmetyka, porównania)
++2                                  OK  03 (zmienne, przypisanie)
++2                                  OK  04 (print)
++1          (to improve, see i) below)  05 (while, if)
++1      (to be checked, see ii) below)  06 (funkcje lub procedury, rekurencja)
++0     (to be checked, see iii) below)  07 (przez zmienną / przez wartość / in/out)
+                                        08 (zmienne read-only i pętla for)
+  Na 20 punktów
++0            (missing? See iv) below)  09 (przesłanianie i statyczne wiązanie)
++2                                  OK  10 (obsługa błędów wykonania)
++1   (to be checked, it depends on 06)  11 (funkcje zwracające wartość)
+  Na 30 punktów
++0             (missing, see v) below)  12 (4) (statyczne typowanie)
+                                        13 (2) (funkcje zagnieżdżone ze statycznym wiązaniem)
+                                        14 (1) (rekordy/tablice/listy)
+                                        15 (2) (krotki z przypisaniem)
+                                        16 (1) (break, continue)
+                                        17 (4) (funkcje wyższego rzędu, anonimowe, domknięcia)
+                                        18 (3) (generatory)
+
+Total: 13 points
+
+i) The following program should print "yes" but it prints "no" (I did not test but probably same problem appears a while)
+
+    z := 1;
+    if (z < 2 or z == 3) then
+        print "yes"
+    else
+        print "no";
+
+  Improve the if/while statements so they accept complex boolean expressions
+  It would be good if more boolean relations are available such as: >, <=, >=, !=
+
+My response:
+The fact that (z < 2 or z == 3) gives false is a parser problem.
+Unfortunately my parser is not very good and it demands parenthesis to make sure that everything works well. 
+I added a program "good/if_improvement.prg".
+There are expressions ((z < 2) or (z == 3)) and ((z < 7) and (y == 1)) that behaves ok. 
+I am going to add some more boolean relations, check program "good/newBools.prg".
+
+ii) Could you provide more examples of procedures/functions? For instance,
+      1) A procedure function that receives an integer and prints "even" if it is even and prints "odd" otherwise
+      2) A procedure function that receives an integer and returns 0 if it is even and returns 0 otherwise
+      3) A recursive function for the factorial function
+    Could you explain how the calling of functions/procedures works? Can I assign to a variable the value returned in a function?
+
+My Response:
+1,2,3 - check "good/odd_even_func.prg" and "factorial_rec"
+
+
+iii) What are the two ways of passing parameters that are implemented? How to use them?
+
+My response:
+In / out.
+First parameter is passed by value("good/factorial_rec" - there 2*2 is passed).
+It is impossible to pass anything using second parameter, because it is set as undefined.
+Second parameter is for output only, one can set it by setting variable return inside of a function.
+I do this for example in "good/odd_even_func.prg".
+
+
+iv) How to use local variables? Any way to define local blocks of code? Can I declare variables inside a procedure/function?
+Local variables can be made by putting declare block. It is regular statement, so it can be put almost everywhere.
+Declare block can be inside function, at the beginning, in the middle(so that variables can be visible only in the part of function), etc.
+Check "good/if_improvement" to see local variable.
+
+v) The following program is allowed to run
+        declare
+            var a;
+            var b;
+        end declare (
+            a := "hello";
+            b := 2;
+            a := a/b;
+            print "program finished"
+        )
+    but it should show an error because types do not match to do division operation.
+
+My response:
+I did not do it.
